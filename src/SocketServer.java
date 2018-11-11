@@ -39,28 +39,38 @@ public class SocketServer {
         channel.read(buf, READ_TIME_OUT, TimeUnit.MILLISECONDS, channel, new CompletionHandler<Integer, AsynchronousSocketChannel>() {
             @Override
             public void completed(Integer result, AsynchronousSocketChannel attachment) {
-                buf.flip();
-                int limits = buf.limit();
-                byte bytes[] = new byte[limits];
-                buf.get(bytes, 0, limits);
-                Charset cs = Charset.forName("UTF-8");
-                String command = new String(bytes, cs);
-                String msg;
-                switch (command.toUpperCase()) {
-                    case "WHO":
-                        msg = "Total number of clients:" + clientNumber;
-                        break;
-                    case "WHERE":
-                        msg = "Server id:" + id;
-                        break;
-                    case "WHY":
-                        msg = "42";
-                        break;
-                    default:
-                        msg = "Command not found";
+                try {
+                    buf.flip();
+                    int limits = buf.limit();
+                    byte bytes[] = new byte[limits];
+                    buf.get(bytes, 0, limits);
+                    Charset cs = Charset.forName("UTF-8");
+                    String command = new String(bytes, cs);
+                    String msg;
+                    switch (command.toUpperCase()) {
+                        case "WHO":
+                            msg = "Total number of clients:" + clientNumber;
+                            break;
+                        case "WHERE":
+                            msg = "Server id:" + id;
+                            break;
+                        case "WHY":
+                            msg = "42";
+                            break;
+                        case "BYE":
+                            channel.close();
+                            removeClient();
+                            msg = "bye";
+                            break;
+                        default:
+                            msg = "Command not found";
 
+                    }
+                    attachment.write(ByteBuffer.wrap(msg.getBytes()));
+
+                } catch (IOException e) {
+                    Logger.getLogger(SocketServer.class.getName()).log( Level.SEVERE, "Error ", e);
                 }
-                attachment.write(ByteBuffer.wrap(msg.getBytes()));
             }
 
             @Override
@@ -69,6 +79,10 @@ public class SocketServer {
                 Logger.getLogger(SocketServer.class.getName()).log( Level.SEVERE, "Unable to read from channel ", exc);
             }
         });
+    }
+
+    private void removeClient() {
+        --clientNumber;
     }
 
     public static void main(String[] args) {
